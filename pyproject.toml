@@ -1,0 +1,17 @@
+[project]
+name = "architecture-taste"
+version = "0.1.0"
+description = "A local-first architecture judgment lab and reusable decision protocol"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["jsonschema>=4.23,<5"]
+
+[tool.uv]
+package = false
+
+[tool.architecture-taste]
+status = "incubating"
+visibility = "private-until-reviewed"
+owner = "James"
+case-schema = "0.1"
+runner = "manual-packet-exporter"

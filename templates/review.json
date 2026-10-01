@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1",
+  "trial_id": "REPLACE_WITH_TRIAL_ID",
+  "reviewer_id": "REPLACE_WITH_REVIEWER_ID",
+  "status": "draft",
+  "blinding": "记录是否隐藏模型、arm 和顺序；不要伪称已盲评。",
+  "critical_assessments": [
+    {
+      "requirement_id": "REPLACE_WITH_CASE_REQUIREMENT",
+      "outcome": "unclear",
+      "rationale": "填写判断与证据。",
+      "response_evidence": []
+    }
+  ],
+  "dimensions": [
+    {
+      "dimension": "context",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    },
+    {
+      "dimension": "constraint_fit",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    },
+    {
+      "dimension": "tradeoffs",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    },
+    {
+      "dimension": "evolution",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    },
+    {
+      "dimension": "verification",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    },
+    {
+      "dimension": "uncertainty",
+      "score": null,
+      "reason": "尚未评分。",
+      "response_evidence": [],
+      "context_evidence": []
+    }
+  ],
+  "overall": "indeterminate",
+  "disagreements": [],
+  "notes": [
+    "空模板，不是模型评测结果。"
+  ]
+}

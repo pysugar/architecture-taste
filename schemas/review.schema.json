@@ -1,0 +1,159 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "final"
+      ]
+    },
+    "blinding": {
+      "type": "string",
+      "minLength": 1
+    },
+    "critical_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "enum": [
+              "pass",
+              "fail",
+              "unclear"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "requirement_id",
+          "outcome",
+          "rationale",
+          "response_evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "enum": [
+              "context",
+              "constraint_fit",
+              "tradeoffs",
+              "evolution",
+              "verification",
+              "uncertainty"
+            ]
+          },
+          "score": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 3
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0
+          },
+          "context_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "dimension",
+          "score",
+          "reason",
+          "response_evidence",
+          "context_evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 6
+    },
+    "overall": {
+      "enum": [
+        "acceptable",
+        "needs_revision",
+        "unsafe",
+        "indeterminate"
+      ]
+    },
+    "disagreements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "trial_id",
+    "reviewer_id",
+    "status",
+    "blinding",
+    "critical_assessments",
+    "dimensions",
+    "overall",
+    "disagreements",
+    "notes"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Human review v0.1"
+}

@@ -1,0 +1,381 @@
+{
+  "schema_version": "0.1",
+  "case_id": "003-platform",
+  "title": "部署平台：复用、运维退出、产品退役",
+  "kind": "synthetic",
+  "split": "development",
+  "review_status": "unreviewed",
+  "provenance": "Original synthetic teaching scenario drafted for this starter. All workloads, measurements, budgets and contracts are fictional. No customer material or real model scores are included.",
+  "stages": [
+    {
+      "stage_id": "T0",
+      "public": {
+        "situation": "为企业内部增加一个小应用，决定部署落点。现成平台是上下文的一部分，而非从空白开始选技术。",
+        "facts": [
+          {
+            "id": "P01",
+            "statement": "3 名应用开发者；峰值约 15 RPS。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P02",
+            "statement": "组织已有内部 Kubernetes 平台，由独立平台团队负责升级、值守、备份接口和发布模板。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P03",
+            "statement": "该平台已有多个应用稳定使用，应用团队只需提交标准部署描述；本题没有证据表明必须另建集群。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "PC01",
+            "statement": "4 周上线；不得引入没有明确责任人的运行组件。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "PC02",
+            "statement": "使用公司身份入口与审计流程；产品数据不能公开暴露。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "平台服务目录是否覆盖此应用",
+          "隔离和恢复边界",
+          "接入成本与其他部署选择的成本"
+        ],
+        "task": "决定复用还是另选部署方案，按边际复杂度而非技术名词打分。"
+      },
+      "oracle": [
+        {
+          "id": "PO01",
+          "topic": "平台能力",
+          "answer": "平台提供命名空间隔离、标准 Web 应用模板、托管数据库接入和集中日志；不提供应用语义正确性的保证。",
+          "changes_decision_because": "复用已有平台和自建平台不是同样的拥有成本。"
+        },
+        {
+          "id": "PO02",
+          "topic": "接入成本",
+          "answer": "基础接入约 1 个工程日；费用按内部配额，需负责人确认，不得视为永远免费。",
+          "changes_decision_because": "成本估算有边界。"
+        },
+        {
+          "id": "PO03",
+          "topic": "应用特征",
+          "answer": "常规内部 CRUD，无特殊硬件、低延迟交易或自定义网络协议。",
+          "changes_decision_because": "不存在已知平台不适配点。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "PR01",
+            "requirement": "运行组件都有责任归属，验证身份和数据边界。",
+            "supported_by": [
+              "PC01",
+              "PC02"
+            ]
+          },
+          {
+            "id": "PR02",
+            "requirement": "明确比较复用平台与从零自建的不同成本。",
+            "supported_by": [
+              "P02",
+              "P03",
+              "PO01"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "复用现有 Kubernetes 平台并核对支持、隔离和成本。",
+          "若发现具体不适配或更低的可证明总成本，采用另一路径；需说明新增责任。"
+        ],
+        "failure_modes": [
+          "小应用必然不能用 Kubernetes。",
+          "已有 Kubernetes 所以顺便加 mesh 和多个服务。",
+          "把平台负责基础设施等同于替应用负责租户语义。"
+        ],
+        "scoring_notes": [
+          "不奖励或惩罚 Kubernetes 关键词；判断依据必须依赖平台能力和运维归属。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T1",
+      "public": {
+        "situation": "平台支持即将改变。你的旧决策在当时可能正确，现在需要重新评估。",
+        "facts": [
+          {
+            "id": "P11",
+            "statement": "原平台团队将在 90 天后撤销此平台的维护支持；现有应用仍在运行。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P12",
+            "statement": "应用团队无 Kubernetes 升级和故障处理经验；没有确定的替代平台团队。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P13",
+            "statement": "应用流量仍是约 15 RPS。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "PC11",
+            "statement": "未来运行方案不能依赖无人的平台值守。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "PC12",
+            "statement": "维护切换不可丢数据；服务窗口与恢复目标需明确。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "可用托管替代与组织授权",
+          "迁移依赖和数据出口",
+          "支持能否延期"
+        ],
+        "task": "更新原部署决定，区分继续暂用、延长支持、移交与迁移；旧投入不是继续持有的充分理由。"
+      },
+      "oracle": [
+        {
+          "id": "PO11",
+          "topic": "替代方案",
+          "answer": "公司已允许托管容器或受管虚拟机方案，但具体成本与身份接入尚未验证。",
+          "changes_decision_because": "有替代方向，无现成验证结论。"
+        },
+        {
+          "id": "PO12",
+          "topic": "迁移难点",
+          "answer": "应用数据库可导出；身份配置与网络白名单由另一个团队维护，排期未确定。",
+          "changes_decision_because": "迁移风险不只是搬容器。"
+        },
+        {
+          "id": "PO13",
+          "topic": "延期空间",
+          "answer": "原团队可讨论 30 天有条件延期，未获批准。",
+          "changes_decision_because": "有过渡选择但不能默认为事实。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "PR11",
+            "requirement": "消除或显式升级无人值守风险。",
+            "supported_by": [
+              "P11",
+              "P12",
+              "PC11"
+            ]
+          },
+          {
+            "id": "PR12",
+            "requirement": "迁移考虑身份、数据、回滚和依赖排期。",
+            "supported_by": [
+              "PC12",
+              "PO12"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "核实托管落点与迁移前提，制定分阶段切换；过渡期明确支持责任。",
+          "通过可验证的运维移交保留平台，但必须证明接手能力，不是仅改责任人名字。"
+        ],
+        "failure_modes": [
+          "为了坚持最初判断忽略支持撤销。",
+          "未经验证宣布替代平台已符合约束。",
+          "把流量不变当作架构不该改变的理由。"
+        ],
+        "scoring_notes": [
+          "这里关键变化是组织能力，不是 QPS。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T2",
+      "public": {
+        "situation": "产品战略再次变化：应用将在 12 个月后下线。无需为不存在的增长做完整重构。",
+        "facts": [
+          {
+            "id": "P21",
+            "statement": "已决定 12 个月后停止应用；现有客户仅需读取历史资料和少量配置更新。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P22",
+            "statement": "运行状态沿用你前两阶段实际方案；不默认已完成迁移。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P23",
+            "statement": "有一份已签内部承诺：历史资料需保留并能导出 24 个月。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "PC21",
+            "statement": "不能因停服决定而删除仍需保留的数据。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "PC22",
+            "statement": "访问控制与审计要求持续到保留期结束。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "数据导出格式与访问频率",
+          "读取服务与归档是否可以分离",
+          "停服责任和维护预算"
+        ],
+        "task": "做退役路线而非增长路线；明确停止变更、保存能力、删除时点和责任转移。"
+      },
+      "oracle": [
+        {
+          "id": "PO21",
+          "topic": "读取需求",
+          "answer": "主要用途是管理员按月导出；普通用户仍需在未来 12 个月可查询。",
+          "changes_decision_because": "不能立即只留冷归档替代仍有效的在线查询。"
+        },
+        {
+          "id": "PO22",
+          "topic": "归档验证",
+          "answer": "尚未演练从备份恢复并导出完整资料。",
+          "changes_decision_because": "保留备份不等于已经拥有可用归档能力。"
+        },
+        {
+          "id": "PO23",
+          "topic": "责任",
+          "answer": "产品负责人接受指定 1 名维护者，但时间配额需确认。",
+          "changes_decision_because": "退役阶段仍须有人拥有服务。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "PR21",
+            "requirement": "保留期、在线查询期和授权边界不被混淆。",
+            "supported_by": [
+              "P21",
+              "P23",
+              "PC21",
+              "PC22",
+              "PO21"
+            ]
+          },
+          {
+            "id": "PR22",
+            "requirement": "退役和归档须验证可恢复、可导出且有人拥有。",
+            "supported_by": [
+              "PO22",
+              "PO23"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "冻结非必要重构，分离在线读取、导出与长期归档；按事实决定何时移除写路径。",
+          "若原平台退出仍未解决，先做必要迁移再退役，而不是等待 12 个月无人维护。"
+        ],
+        "failure_modes": [
+          "已停开发就立即删服务或数据。",
+          "为长期增长继续大规模平台化。",
+          "有备份就宣称恢复验证已完成。"
+        ],
+        "scoring_notes": [
+          "retire 是有效决策；不把删除最多组件当作成绩。"
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "variant_id": "no-platform",
+      "stage_id": "T0",
+      "changed_axis": "撤去既有平台和运维归属；应用规模不变",
+      "replacement_public": {
+        "situation": "为企业内部增加一个小应用，决定部署落点。现成平台是上下文的一部分，而非从空白开始选技术。",
+        "facts": [
+          {
+            "id": "P01",
+            "statement": "3 名应用开发者；峰值约 15 RPS。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P02",
+            "statement": "组织没有现成运行平台或平台团队；采用 Kubernetes 意味着由这 3 名开发者自行建平台和承担值守。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "P03",
+            "statement": "公司允许托管 Web 应用和数据库；具体费用和身份集成需要核验。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "PC01",
+            "statement": "4 周上线；不得引入没有明确责任人的运行组件。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "PC02",
+            "statement": "使用公司身份入口与审计流程；产品数据不能公开暴露。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "平台服务目录是否覆盖此应用",
+          "隔离和恢复边界",
+          "接入成本与其他部署选择的成本"
+        ],
+        "task": "决定复用还是另选部署方案，按边际复杂度而非技术名词打分。"
+      },
+      "replacement_oracle": [
+        {
+          "id": "PO01",
+          "topic": "平台能力",
+          "answer": "没有可复用平台；团队必须自行承担 Kubernetes 的运行、升级和故障处理。",
+          "changes_decision_because": "同名技术在本情境下增加新的拥有成本。"
+        },
+        {
+          "id": "PO02",
+          "topic": "接入成本",
+          "answer": "任何方案的身份接入和成本仍待核实；不得编造 1 天即可完成。",
+          "changes_decision_because": "与 base 保持业务不变，改变平台可用性。"
+        },
+        {
+          "id": "PO03",
+          "topic": "应用特征",
+          "answer": "常规内部 CRUD，无特殊硬件、低延迟交易或自定义网络协议。",
+          "changes_decision_because": "不存在已知平台不适配点。"
+        }
+      ],
+      "reviewer_note": "应该重新估算拥有成本，通常需要论证为何仍自建平台；最终选择未必翻转，但理由不能原样复制。"
+    }
+  ]
+}

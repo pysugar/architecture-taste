@@ -1,0 +1,95 @@
+{
+  "schema_version": "0.1",
+  "case_id": "001-reporting",
+  "stage_id": "T0",
+  "status": "proposed",
+  "context_refs": [
+    "F01",
+    "F02",
+    "C01",
+    "C02",
+    "C03",
+    "O01",
+    "O02",
+    "O03"
+  ],
+  "assumptions": [
+    "现有数据库有足够余量；需先做与报表负载同形的测试。"
+  ],
+  "missing_information": [
+    "整库灾难恢复目标尚需确认。"
+  ],
+  "decision": {
+    "action": "extend",
+    "summary": "在现有应用内维护持久任务状态，并使用独立 worker 执行报表；不新增自管消息平台。",
+    "why_now": "任务耗时超过适合在请求内等待的范围；受理持久性是当前明确要求。",
+    "not_now": [
+      "不因未来想象的规模拆微服务。",
+      "暂不引入自管 Kafka；托管队列作为成本与需求变化后的候选。"
+    ]
+  },
+  "options": [
+    {
+      "name": "数据库持久任务表 + 独立 worker",
+      "benefits": [
+        "复用已有技能和运行组件。"
+      ],
+      "costs_and_risks": [
+        "需自行验证抢占、租约过期、重试和发布去重；数据库容量未知。"
+      ],
+      "use_when": "当前负载与恢复目标能够通过测试时。"
+    },
+    {
+      "name": "托管队列 + worker",
+      "benefits": [
+        "可把部分队列运维交给托管服务。"
+      ],
+      "costs_and_risks": [
+        "受理状态与消息写入的一致性、服务成本和接入仍需设计。"
+      ],
+      "use_when": "队列能力、隔离需求或托管成本在实测中更合适时。"
+    }
+  ],
+  "tradeoffs": [
+    "降低新增平台运维成本，接受维护有限任务协调逻辑的责任。"
+  ],
+  "accepted_debt": [
+    "先用少量队列指标与日志定位异常，不建设独立调度平台。"
+  ],
+  "verification": [
+    {
+      "claim": "进程重启不静默丢失已受理任务",
+      "method": "在受理后、计算中、发布前后注入 worker 崩溃并重启。",
+      "pass_condition": "受理任务可恢复且同 job_id 只有一个有效结果。",
+      "evidence_status": "proposed",
+      "evidence_ref": null
+    },
+    {
+      "claim": "租户隔离",
+      "method": "用两个租户的凭证交换 job_id 和下载链接访问结果。",
+      "pass_condition": "所有越权读取被拒绝且有审计记录。",
+      "evidence_status": "proposed",
+      "evidence_ref": null
+    }
+  ],
+  "revisit_when": [
+    {
+      "signal": "任务完成时长",
+      "threshold": "95% 5 分钟目标持续不满足；阈值来自本案例 O01，而非通用规律。",
+      "window": "先监测一个有代表性的完整工作周；事故即时复核。",
+      "evidence": "完成时长、最老任务年龄、worker 与数据库资源、上游延迟。",
+      "action": "定位瓶颈，先评估资源隔离/并发/限流，再决定是否变更任务机制。",
+      "owner": "应用维护者"
+    }
+  ],
+  "migration": {
+    "required": true,
+    "steps": [
+      "增加兼容性任务状态表和受理接口。",
+      "为小流量开启 worker，验证恢复和发布行为。",
+      "保留旧接口到切换验收完成。"
+    ],
+    "rollback_or_containment": "停止新任务切入，保留已受理任务状态并排空或修复；不通过删表回滚。"
+  },
+  "owner": "待 James 确认；本文件仅为合成教学提案"
+}

@@ -1,0 +1,428 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[0-9]{3}-[a-z][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "const": "synthetic"
+    },
+    "split": {
+      "const": "development"
+    },
+    "review_status": {
+      "enum": [
+        "unreviewed",
+        "reviewed"
+      ]
+    },
+    "provenance": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage_id": {
+            "type": "string",
+            "pattern": "^T[0-9]+$"
+          },
+          "public": {
+            "type": "object",
+            "properties": {
+              "situation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "basis": {
+                      "enum": [
+                        "scenario_given",
+                        "scenario_observation",
+                        "assumption",
+                        "unknown"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement",
+                    "basis",
+                    "source"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "constraints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "strength": {
+                      "enum": [
+                        "hard",
+                        "soft"
+                      ]
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement",
+                    "strength",
+                    "owner"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "unknowns": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0
+              },
+              "task": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "situation",
+              "facts",
+              "constraints",
+              "unknowns",
+              "task"
+            ],
+            "additionalProperties": false
+          },
+          "oracle": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "topic": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "answer": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "changes_decision_because": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "topic",
+                "answer",
+                "changes_decision_because"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "reviewer": {
+            "type": "object",
+            "properties": {
+              "critical_requirements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "requirement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "supported_by": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "requirement",
+                    "supported_by"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "acceptable_families": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "failure_modes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "scoring_notes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "critical_requirements",
+              "acceptable_families",
+              "failure_modes",
+              "scoring_notes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "stage_id",
+          "public",
+          "oracle",
+          "reviewer"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage_id": {
+            "const": "T0"
+          },
+          "changed_axis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replacement_public": {
+            "type": "object",
+            "properties": {
+              "situation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "basis": {
+                      "enum": [
+                        "scenario_given",
+                        "scenario_observation",
+                        "assumption",
+                        "unknown"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement",
+                    "basis",
+                    "source"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "constraints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "strength": {
+                      "enum": [
+                        "hard",
+                        "soft"
+                      ]
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement",
+                    "strength",
+                    "owner"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "unknowns": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0
+              },
+              "task": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "situation",
+              "facts",
+              "constraints",
+              "unknowns",
+              "task"
+            ],
+            "additionalProperties": false
+          },
+          "replacement_oracle": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "topic": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "answer": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "changes_decision_because": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "topic",
+                "answer",
+                "changes_decision_because"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 0
+          },
+          "reviewer_note": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "variant_id",
+          "stage_id",
+          "changed_axis",
+          "replacement_public",
+          "replacement_oracle",
+          "reviewer_note"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "case_id",
+    "title",
+    "kind",
+    "split",
+    "review_status",
+    "provenance",
+    "stages",
+    "variants"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Architecture Taste case v0.1"
+}

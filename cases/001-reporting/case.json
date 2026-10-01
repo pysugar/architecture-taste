@@ -1,0 +1,414 @@
+{
+  "schema_version": "0.1",
+  "case_id": "001-reporting",
+  "title": "报表执行：起步、峰值、收缩",
+  "kind": "synthetic",
+  "split": "development",
+  "review_status": "unreviewed",
+  "provenance": "Original synthetic teaching scenario drafted for this starter. All workloads, measurements, budgets and contracts are fictional. No customer material or real model scores are included.",
+  "stages": [
+    {
+      "stage_id": "T0",
+      "public": {
+        "situation": "为小型 B2B 客户提供按需报表，先决定任务执行边界，不要求完整系统设计。",
+        "facts": [
+          {
+            "id": "F01",
+            "statement": "2 名开发者，熟悉 Python 和 PostgreSQL；单地区。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F02",
+            "statement": "5 个客户，预计 200 份报表/日，短时 5 份/分钟；每份计算 20–90 秒，源数据 8 GB。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F03",
+            "statement": "当前有 Web 应用和 PostgreSQL；尚未上线后台执行链。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "C01",
+            "statement": "4 周交付；基础设施新增月预算上限 200 美元，选型成本需实际核价。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C02",
+            "statement": "进程重启后，已确认受理的任务不能静默丢失。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C03",
+            "statement": "不能跨租户读取源数据或下载结果。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "用户可接受的完成时间",
+          "重复计算和结果发布语义",
+          "运维能力与值守时间"
+        ],
+        "task": "决定是否、如何把报表执行移出请求路径；说明必要保障、不做的事和验证方法。预算是本案例约束，不代表云产品报价。"
+      },
+      "oracle": [
+        {
+          "id": "O01",
+          "topic": "完成时间",
+          "answer": "95% 的任务在工作时段 5 分钟内完成；不要求请求内返回报告。",
+          "changes_decision_because": "决定异步交互是否成立和队列容量目标。"
+        },
+        {
+          "id": "O02",
+          "topic": "重复语义",
+          "answer": "输入源可在 30 天内重新取得。允许重复计算，但同一个 job_id 对用户只发布一个有效最终结果；没有外部扣款等不可逆副作用。",
+          "changes_decision_because": "区分执行次数与发布幂等，避免把 exactly-once 当成免费承诺。"
+        },
+        {
+          "id": "O03",
+          "topic": "运维能力",
+          "answer": "每周合计可投入 1 小时维护，无 Kafka 运维经验；没有可复用的内部消息平台。",
+          "changes_decision_because": "影响新增组件的拥有成本。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "R01",
+            "requirement": "受理记录与执行状态有持久性；解释进程崩溃后的恢复。",
+            "supported_by": [
+              "C02"
+            ]
+          },
+          {
+            "id": "R02",
+            "requirement": "读写源数据和结果下载都维护租户边界。",
+            "supported_by": [
+              "C03"
+            ]
+          },
+          {
+            "id": "R03",
+            "requirement": "说明重复执行与最终结果发布的处理。",
+            "supported_by": [
+              "O02"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "现有数据库持久任务表加独立 worker，需说明抢占/租约、重试和结果发布。",
+          "托管队列加 worker，若成本、受理原子性、可观测性与运维预算可证明成立，同样可接受。"
+        ],
+        "failure_modes": [
+          "只用进程内队列，重启丢失受理任务。",
+          "为低运维团队引入无法拥有的多组件栈而不说明成本。",
+          "只说先简单做，遗漏租户隔离或重复语义。"
+        ],
+        "scoring_notes": [
+          "不以是否使用 PostgreSQL 队列作为标准答案；也不要求一定不用 Redis。",
+          "O01–O03 在 clarify 模式未被询问时，不能按已知事实惩罚；评估是否识别关键不确定性。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T1",
+      "public": {
+        "situation": "产品上线后，报表请求和 Web 请求开始互相干扰。沿用上一阶段你的实际决策，不默认某个参考架构已经被采用。",
+        "facts": [
+          {
+            "id": "F11",
+            "statement": "现在每天 4000 份报表；峰值 40 份/分钟，持续约 5 分钟。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F12",
+            "statement": "合成监测：最长任务等待 18 分钟；Web p95 800 ms；报表高峰与 Web 延迟上升重合。",
+            "basis": "scenario_observation",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F13",
+            "statement": "合成监测：数据库 CPU 约 25%，没有持续锁等待；执行侧 CPU 接近配额。以上是线索，不是完整因果证明。",
+            "basis": "scenario_observation",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F14",
+            "statement": "团队仍是 2 人；没有新平台团队。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "C11",
+            "statement": "进程故障不能静默丢任务；租户隔离继续有效。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C12",
+            "statement": "本次可投入 5 个工程日；部署须可回退。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "新的完成目标和优先级",
+          "负载画像与租户公平",
+          "上下游瓶颈是否被排除"
+        ],
+        "task": "基于已有方案决定最小必要变化，以及继续保留的部分。性能结论必须说明需补哪些证据。"
+      },
+      "oracle": [
+        {
+          "id": "O11",
+          "topic": "完成目标",
+          "answer": "新确认目标为报表 95% 在 15 分钟内完成；Web p95 目标 300 ms；新增月预算 600 美元。",
+          "changes_decision_because": "调整目标，不能机械沿用旧的 5 分钟要求。"
+        },
+        {
+          "id": "O12",
+          "topic": "租户公平",
+          "answer": "一个租户制造了峰值期 70% 任务；支持每租户并发上限，暂不要求严格优先级调度。",
+          "changes_decision_because": "公平限流可能比整个平台重写更有效。"
+        },
+        {
+          "id": "O13",
+          "topic": "上游容量",
+          "answer": "任务输入读取的依赖支持的并发上限尚未压测；不得将它视为无限资源。",
+          "changes_decision_because": "扩容 worker 需要背压而非无限并发。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "R11",
+            "requirement": "保障原有持久性与租户隔离不退化。",
+            "supported_by": [
+              "C11"
+            ]
+          },
+          {
+            "id": "R12",
+            "requirement": "扩并发时考虑资源隔离、背压及依赖容量。",
+            "supported_by": [
+              "F12",
+              "F13",
+              "O13"
+            ]
+          },
+          {
+            "id": "R13",
+            "requirement": "有可回退的增量路径，不删除上一阶段决策。",
+            "supported_by": [
+              "C12"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "隔离 Web/worker 资源，按测量调整 worker 并发和租户限额。",
+          "若原方案的持久任务机制已成为实测瓶颈，再迁至托管队列，并保留 job_id 与发布语义。"
+        ],
+        "failure_modes": [
+          "仅因为流量增长就分库分表。",
+          "无上限启动 worker，忽略上游容量。",
+          "架构整套换掉却没有迁移、回滚和成本论证。"
+        ],
+        "scoring_notes": [
+          "不从 DAU/QPS 直接推导组件；要求瓶颈证据。",
+          "有合理依据时较大改造可接受，不把“变化最小”设成绝对目标。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T2",
+      "public": {
+        "situation": "六个月后业务收缩。必须重新核算维护成本，但已有合同没有自动消失。",
+        "facts": [
+          {
+            "id": "F21",
+            "statement": "降到每天 120 份报表，连续 4 周稳定；只剩 1 名维护者。",
+            "basis": "scenario_observation",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F22",
+            "statement": "当前部署沿用你的前两阶段决策；不得假定一定有消息中间件可删除。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F23",
+            "statement": "基础设施预算拟降至每月 80 美元；需提交可实现性评估，预算尚未获合同方确认。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "C21",
+            "statement": "租户隔离、已受理任务恢复、有效结果去重继续有效。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C22",
+            "statement": "成本调整不能无说明地降低已承诺服务目标。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "哪些组件实际产生持续成本",
+          "是否仍有周期性峰值",
+          "成本下调与合同是否兼容"
+        ],
+        "task": "决定 keep/retire/replace/defer 哪些部分；不为展示简洁而强行迁移，也不因历史投入而拒绝简化。"
+      },
+      "oracle": [
+        {
+          "id": "O21",
+          "topic": "实际成本",
+          "answer": "只有账单汇总，没有按组件拆分的成本与值守时间记录。",
+          "changes_decision_because": "先测量可能比立刻迁移更合适。"
+        },
+        {
+          "id": "O22",
+          "topic": "周期峰值",
+          "answer": "月末可能短时到 20 份/分钟，目前只有一次观测。",
+          "changes_decision_because": "不能仅按日均量裁减容量。"
+        },
+        {
+          "id": "O23",
+          "topic": "合同",
+          "answer": "报表 95% 15 分钟完成仍有效；客户愿意讨论价格，不等于同意降级。",
+          "changes_decision_because": "成本目标与服务要求冲突需由人处理。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "R21",
+            "requirement": "保留恢复、隔离与结果语义。",
+            "supported_by": [
+              "C21"
+            ]
+          },
+          {
+            "id": "R22",
+            "requirement": "识别预算是拟议目标而非已批准的服务降级。",
+            "supported_by": [
+              "F23",
+              "C22"
+            ]
+          },
+          {
+            "id": "R23",
+            "requirement": "区分迁移成本和日常持有成本。",
+            "supported_by": [
+              "O21"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "先拆分成本和维护时间，调低配额、合并部署单元但保留逻辑边界。",
+          "若回收期与风险明确，移除多余专用组件；或保留成本已很低的现有组件。"
+        ],
+        "failure_modes": [
+          "把低流量当作删除持久性、认证和备份的理由。",
+          "只看账单，不算迁移和回退成本。"
+        ],
+        "scoring_notes": [
+          "不要奖励无条件去中间件。",
+          "对尚未确认的预算冲突，可建议协商/调查而非编造合规部署成本。"
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "variant_id": "managed-platform",
+      "stage_id": "T0",
+      "changed_axis": "可复用平台与运维归属；应用流量不变",
+      "replacement_public": {
+        "situation": "为小型 B2B 客户提供按需报表，先决定任务执行边界，不要求完整系统设计。",
+        "facts": [
+          {
+            "id": "F01",
+            "statement": "2 名应用开发者，熟悉 Python 和 PostgreSQL；单地区。组织已有由独立团队值守的消息平台，业务团队接入无需自行部署或值守。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F02",
+            "statement": "5 个客户，预计 200 份报表/日，短时 5 份/分钟；每份计算 20–90 秒，源数据 8 GB。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "F03",
+            "statement": "当前有 Web 应用和 PostgreSQL；尚未上线后台执行链。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "C01",
+            "statement": "4 周交付；基础设施新增月预算上限 200 美元，选型成本需实际核价。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C02",
+            "statement": "进程重启后，已确认受理的任务不能静默丢失。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "C03",
+            "statement": "不能跨租户读取源数据或下载结果。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "用户可接受的完成时间",
+          "重复计算和结果发布语义",
+          "运维能力与值守时间"
+        ],
+        "task": "决定是否、如何把报表执行移出请求路径；说明必要保障、不做的事和验证方法。预算是本案例约束，不代表云产品报价。"
+      },
+      "replacement_oracle": [
+        {
+          "id": "O01",
+          "topic": "完成时间",
+          "answer": "95% 的任务在工作时段 5 分钟内完成；不要求请求内返回报告。",
+          "changes_decision_because": "决定异步交互是否成立和队列容量目标。"
+        },
+        {
+          "id": "O02",
+          "topic": "重复语义",
+          "answer": "输入源可在 30 天内重新取得。允许重复计算，但同一个 job_id 对用户只发布一个有效最终结果；没有外部扣款等不可逆副作用。",
+          "changes_decision_because": "区分执行次数与发布幂等，避免把 exactly-once 当成免费承诺。"
+        },
+        {
+          "id": "O03",
+          "topic": "运维能力",
+          "answer": "应用团队每周仍仅 1 小时维护；现成内部消息平台提供受理接口、监控和支持，接入边际成本需核实。",
+          "changes_decision_because": "变化的是可复用平台和运维归属，不是报表规模。"
+        }
+      ],
+      "reviewer_note": "可改变消息方案推荐，也可保留数据库方案；必须显式重新核算边际复杂度，不能因“小团队”一律否定现成平台。"
+    }
+  ]
+}

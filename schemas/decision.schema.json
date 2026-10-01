@@ -1,0 +1,275 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "blocked",
+        "accepted",
+        "superseded"
+      ]
+    },
+    "context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "missing_information": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "keep",
+            "extend",
+            "replace",
+            "retire",
+            "defer",
+            "investigate"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why_now": {
+          "type": "string",
+          "minLength": 1
+        },
+        "not_now": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "action",
+        "summary",
+        "why_now",
+        "not_now"
+      ],
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benefits": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "costs_and_risks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "use_when": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "name",
+          "benefits",
+          "costs_and_risks",
+          "use_when"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 2
+    },
+    "tradeoffs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "accepted_debt": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "verification": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pass_condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_status": {
+            "enum": [
+              "proposed",
+              "executed"
+            ]
+          },
+          "evidence_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "claim",
+          "method",
+          "pass_condition",
+          "evidence_status",
+          "evidence_ref"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "revisit_when": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "signal": {
+            "type": "string",
+            "minLength": 1
+          },
+          "threshold": {
+            "type": "string",
+            "minLength": 1
+          },
+          "window": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "signal",
+          "threshold",
+          "window",
+          "evidence",
+          "action",
+          "owner"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "rollback_or_containment": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "required",
+        "steps",
+        "rollback_or_containment"
+      ],
+      "additionalProperties": false
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "case_id",
+    "stage_id",
+    "status",
+    "context_refs",
+    "assumptions",
+    "missing_information",
+    "decision",
+    "options",
+    "tradeoffs",
+    "accepted_debt",
+    "verification",
+    "revisit_when",
+    "migration",
+    "owner"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Optional normalized decision record v0.1"
+}

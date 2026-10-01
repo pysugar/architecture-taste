@@ -1,0 +1,418 @@
+{
+  "schema_version": "0.1",
+  "case_id": "002-ledger",
+  "title": "额度账户：低流量、外部边界、分区冲突",
+  "kind": "synthetic",
+  "split": "development",
+  "review_status": "unreviewed",
+  "provenance": "Original synthetic teaching scenario drafted for this starter. All workloads, measurements, budgets and contracts are fictional. No customer material or real model scores are included.",
+  "stages": [
+    {
+      "stage_id": "T0",
+      "public": {
+        "situation": "设计付费额度账户的扣减服务。本案例是工程语义练习，不涉及真实资金或金融法规。",
+        "facts": [
+          {
+            "id": "L01",
+            "statement": "峰值 8 次扣减/秒；2 名开发者，熟悉关系数据库。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L02",
+            "statement": "一个账户可被两个客户端并发使用；客户端在超时时会重试。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L03",
+            "statement": "当前仅一个地区、一套 PostgreSQL。无跨服务写入需求。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "LC01",
+            "statement": "同一账户不得消费超过已确认的可用额度。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          },
+          {
+            "id": "LC02",
+            "statement": "同一个业务请求不能被重复扣减。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          },
+          {
+            "id": "LC03",
+            "statement": "每次额度变化必须能追溯到原始业务请求。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          }
+        ],
+        "unknowns": [
+          "业务请求标识和重试时限",
+          "错误与超时的对外语义",
+          "故障恢复目标"
+        ],
+        "task": "在当前单库边界内设计扣减与查询语义，说明并发、重试和审计保障，不要从流量低推导一致性可以忽略。"
+      },
+      "oracle": [
+        {
+          "id": "LO01",
+          "topic": "请求标识",
+          "answer": "每次业务操作已有全局稳定的 operation_id；调用方会复用它重试，最多 7 天。",
+          "changes_decision_because": "允许明确幂等键、保留期与重复返回。"
+        },
+        {
+          "id": "LO02",
+          "topic": "失败语义",
+          "answer": "调用方可接受短时失败和稍后查询确认状态，不能把未知结果当作肯定失败后换 ID 再扣。",
+          "changes_decision_because": "可在不确定时 fail closed 或返回待确认。"
+        },
+        {
+          "id": "LO03",
+          "topic": "恢复目标",
+          "answer": "整库灾难的 RPO/RTO 尚未确认。必须提出需要业务确认，不能默认零数据损失已经实现。",
+          "changes_decision_because": "持久提交语义不等于完整灾备承诺。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "LR01",
+            "requirement": "用可解释的原子条件更新/锁/合适隔离策略阻止并发透支。",
+            "supported_by": [
+              "LC01",
+              "L02"
+            ]
+          },
+          {
+            "id": "LR02",
+            "requirement": "幂等记录与额度变更原子关联。",
+            "supported_by": [
+              "LC02",
+              "LO01"
+            ]
+          },
+          {
+            "id": "LR03",
+            "requirement": "审计与未知状态处置不被省略。",
+            "supported_by": [
+              "LC03",
+              "LO02"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "单库事务、受约束的幂等标识、原子额度更新与可追溯变更记录。",
+          "其他实现只要能证明同样不变量与恢复行为也可接受。"
+        ],
+        "failure_modes": [
+          "低流量就读后写且无并发控制。",
+          "声称一个 mutex 可覆盖多实例和进程故障。",
+          "用消息中间件宣称自然拥有全局 exactly-once。"
+        ],
+        "scoring_notes": [
+          "不指定唯一隔离级别；检查异常序列和具体不变量。",
+          "不因为出现真实感账本场景就奖励复杂事件溯源。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T1",
+      "public": {
+        "situation": "现在接入外部额度补充供应商。你不能把本地数据库事务扩展成对方系统的事务。",
+        "facts": [
+          {
+            "id": "L11",
+            "statement": "供应商通知可能重复、乱序和晚到；网络请求可能超时。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L12",
+            "statement": "峰值仍只有 12 次/秒；不是吞吐问题。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L13",
+            "statement": "供应商提供业务流水号和查询接口；细节需要确认。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "LC11",
+            "statement": "同一笔外部额度补充最多入账一次；本地变更需可追溯。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "LC12",
+            "statement": "保持 T0 的防透支和重复扣减约束。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          }
+        ],
+        "unknowns": [
+          "供应商回调可信性和查询语义",
+          "外部操作是否支持幂等键",
+          "超时与对账责任"
+        ],
+        "task": "在上一阶段方案上增加外部边界，不要求一定采用 Saga；解释未决状态、验证、重试和对账。"
+      },
+      "oracle": [
+        {
+          "id": "LO11",
+          "topic": "供应商语义",
+          "answer": "回调有可验证签名；查询接口按稳定流水号返回供应商确认状态，但状态可能延迟。",
+          "changes_decision_because": "回调可信性与重复性是两个不同问题。"
+        },
+        {
+          "id": "LO12",
+          "topic": "提交语义",
+          "answer": "本系统不负责发起供应商交易，只消费通知并主动查询确认；没有第二个需要提交的远端扣款动作。",
+          "changes_decision_because": "不是天然两方写事务，不能为了题目关键词硬上 Saga。"
+        },
+        {
+          "id": "LO13",
+          "topic": "处理目标",
+          "answer": "95% 的已确认额度补充应在 10 分钟内显示；存在 1 名运营人员可每日处理异常对账。",
+          "changes_decision_because": "允许受控延迟与人工异常流程。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "LR11",
+            "requirement": "可信来源校验与入账幂等均有设计。",
+            "supported_by": [
+              "L11",
+              "LC11",
+              "LO11"
+            ]
+          },
+          {
+            "id": "LR12",
+            "requirement": "未决/延迟状态可恢复、可查询、可对账。",
+            "supported_by": [
+              "L11",
+              "LO11",
+              "LO13"
+            ]
+          },
+          {
+            "id": "LR13",
+            "requirement": "维持原不变量。",
+            "supported_by": [
+              "LC12"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "本地入账事务与去重，外部状态查询/对账，必要时 inbox 或持久处理记录。",
+          "仅在有明确第二个业务动作与补偿定义时讨论 Saga。"
+        ],
+        "failure_modes": [
+          "把签名有效等同于不会重复。",
+          "无限重试或把超时直接当失败入账。",
+          "把回调接收误当成必须引入分布式事务。"
+        ],
+        "scoring_notes": [
+          "这是边界变化，不是规模升级题。",
+          "用“最终一致”必须说明哪些字段、延迟与修复机制。"
+        ]
+      }
+    },
+    {
+      "stage_id": "T2",
+      "public": {
+        "situation": "客户希望两个地区断网时都能独立受理同一个账户的额度消费，但没有接受透支。",
+        "facts": [
+          {
+            "id": "L21",
+            "statement": "某些账户会在两个地区同时活动；地区间可能断连 30 分钟。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L22",
+            "statement": "新增需求是故障时仍可受理，而不是更高 QPS。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L23",
+            "statement": "本阶段仅讨论方案，尚未签署新合同。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "LC21",
+            "statement": "同一账户的全局可用额度不能被超额消费，约束仍有效。",
+            "strength": "hard",
+            "owner": "产品负责人"
+          },
+          {
+            "id": "LC22",
+            "statement": "销售提出：任一地区与另一地区断连时也不得拒绝该账户的任意合法消费。",
+            "strength": "soft",
+            "owner": "销售负责人"
+          }
+        ],
+        "unknowns": [
+          "能否按账户归属地区",
+          "能否预分配区域消费额度",
+          "是否允许部分拒绝或等待"
+        ],
+        "task": "指出要求之间的冲突及可选业务语义；给出可协商方案，不承诺不可兼得的性质。"
+      },
+      "oracle": [
+        {
+          "id": "LO21",
+          "topic": "业务弹性",
+          "answer": "账户可绑定主要地区，但客户担心跨地区体验；未接受把销售诉求改成强制合同。",
+          "changes_decision_because": "需要协商，不能自动当硬约束。"
+        },
+        {
+          "id": "LO22",
+          "topic": "区域额度",
+          "answer": "业务愿意研究预分配地区额度；分区时部分请求可能因当地额度不足被拒绝。",
+          "changes_decision_because": "有可行的 escrow 类取舍，但不等于所有请求都可用。"
+        },
+        {
+          "id": "LO23",
+          "topic": "优先级",
+          "answer": "业务负责人确认，宁可有限拒绝，也不允许全局额度被透支。",
+          "changes_decision_because": "确定一致性语义优先于无条件受理。"
+        }
+      ],
+      "reviewer": {
+        "critical_requirements": [
+          {
+            "id": "LR21",
+            "requirement": "明确未协调的双方不能对相同未分配额度任意独立消费并同时保证不透支。",
+            "supported_by": [
+              "L21",
+              "LC21",
+              "LC22"
+            ]
+          },
+          {
+            "id": "LR22",
+            "requirement": "拒绝自动把销售软目标变成既定承诺。",
+            "supported_by": [
+              "L23",
+              "LC22"
+            ]
+          },
+          {
+            "id": "LR23",
+            "requirement": "解释单写/归属/区域预分配等方案实际牺牲的受理范围。",
+            "supported_by": [
+              "LO21",
+              "LO22",
+              "LO23"
+            ]
+          }
+        ],
+        "acceptable_families": [
+          "账户归属与单写，部分故障下排队/拒绝。",
+          "预分配区域额度，显式解释余额再平衡和局部额度耗尽时的限制。"
+        ],
+        "failure_modes": [
+          "喊 CAP 而不解释账户不变量。",
+          "承诺跨区异步复制下两边任意消费仍不透支。",
+          "用 LLM 或人工审批凭空改变已确认硬约束。"
+        ],
+        "scoring_notes": [
+          "应评价问题冲突识别，不因没有交付最终架构图扣分。",
+          "如果 unknown 未揭示，允许先阻塞决策并提出选择，不要求猜到业务答案。"
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "variant_id": "existing-authority",
+      "stage_id": "T0",
+      "changed_axis": "已有可复用的额度权威服务；业务不变量不变",
+      "replacement_public": {
+        "situation": "设计付费额度账户的扣减服务。本案例是工程语义练习，不涉及真实资金或金融法规。",
+        "facts": [
+          {
+            "id": "L01",
+            "statement": "峰值 8 次扣减/秒；1 名开发者，且组织已有通过审查的账户额度服务可复用。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L02",
+            "statement": "一个账户可被两个客户端并发使用；客户端在超时时会重试。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          },
+          {
+            "id": "L03",
+            "statement": "现成额度服务拥有额度写入和幂等能力，并有明确 API 与责任人；需核对语义是否覆盖本产品。",
+            "basis": "scenario_given",
+            "source": "Synthetic case author; not production evidence"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "LC01",
+            "statement": "同一账户不得消费超过已确认的可用额度。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          },
+          {
+            "id": "LC02",
+            "statement": "同一个业务请求不能被重复扣减。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          },
+          {
+            "id": "LC03",
+            "statement": "每次额度变化必须能追溯到原始业务请求。",
+            "strength": "hard",
+            "owner": "业务负责人"
+          }
+        ],
+        "unknowns": [
+          "业务请求标识和重试时限",
+          "错误与超时的对外语义",
+          "故障恢复目标"
+        ],
+        "task": "在当前单库边界内设计扣减与查询语义，说明并发、重试和审计保障，不要从流量低推导一致性可以忽略。"
+      },
+      "replacement_oracle": [
+        {
+          "id": "LO01",
+          "topic": "请求标识",
+          "answer": "每次业务操作已有全局稳定的 operation_id；调用方会复用它重试，最多 7 天。",
+          "changes_decision_because": "允许明确幂等键、保留期与重复返回。"
+        },
+        {
+          "id": "LO02",
+          "topic": "失败语义",
+          "answer": "调用方可接受短时失败和稍后查询确认状态，不能把未知结果当作肯定失败后换 ID 再扣。",
+          "changes_decision_because": "可在不确定时 fail closed 或返回待确认。"
+        },
+        {
+          "id": "LO03",
+          "topic": "恢复目标",
+          "answer": "整库灾难的 RPO/RTO 尚未确认。必须提出需要业务确认，不能默认零数据损失已经实现。",
+          "changes_decision_because": "持久提交语义不等于完整灾备承诺。"
+        }
+      ],
+      "reviewer_note": "可优先验证和复用既有服务，不因熟悉单库事务就重复建账；也不能未经接口契约确认就断言所有要求已满足。"
+    }
+  ]
+}

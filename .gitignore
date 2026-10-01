@@ -1,0 +1,174 @@
+# ==============================================================================
+# Architecture Taste — Project Specific
+# ==============================================================================
+artifacts/
+runs/
+private-cases/
+
+# ==============================================================================
+# Environment & Secrets
+# ==============================================================================
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# Python
+# ==============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build & distribution artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Installer & runtime logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing, coverage & linting
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter / IPython
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# PyInstaller
+*.manifest
+*.spec
+
+# ==============================================================================
+# Golang
+# ==============================================================================
+# Compiled binaries and executables
+*.exe
+*.exe~
+*.dll
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of the go coverage tool / profiling
+*.out
+*.prof
+
+# Go workspace
+go.work
+go.work.sum
+
+# Delve debug binaries
+__debug_bin*
+
+# Go vendoring
+vendor/
+
+# ==============================================================================
+# Web / Node.js
+# ==============================================================================
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Yarn v2+
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Web build outputs
+out/
+.next/
+.nuxt/
+.output/
+.svelte-kit/
+.astro/
+dist-ssr/
+
+# Web caches & bundler artifacts
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# Frontend test coverage & report
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ==============================================================================
+# Operating System & Editors
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encrypt
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+
+# Linux
+*~
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
